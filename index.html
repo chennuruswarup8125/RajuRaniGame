@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raju Rani Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            padding-bottom: 60px; /* Add padding to prevent footer overlap */
+        }
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: flex;
+        }
+        .player-card {
+            transition: all 0.3s ease;
+        }
+        .player-card.active-turn {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            border-color: #3B82F6;
+        }
+        .player-card.completed {
+            background-color: #2d3748;
+            border-color: #4a5568;
+            opacity: 0.7;
+            cursor: not-allowed !important;
+        }
+        #player-role.hidden-role {
+            filter: blur(5px);
+            user-select: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .custom-footer {
+            animation: fadeIn 1.5s ease-in-out;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .custom-footer:hover {
+            transform: scale(1.05);
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div id="current-player-display" class="hidden fixed top-4 right-4 bg-gray-700 text-white text-lg py-2 px-4 rounded-lg shadow-lg z-10"></div>
+
+    <!-- Landing Page -->
+    <div id="landing-screen" class="screen active flex-col items-center justify-center w-full max-w-md mx-auto">
+        <h1 class="text-5xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Raju Rani Game</h1>
+        <div class="w-full space-y-4">
+            <button id="create-game-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Connecting...</button>
+            <button id="join-game-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Connecting...</button>
+        </div>
+    </div>
+
+    <!-- Create Game Screen -->
+    <div id="create-game-screen" class="screen flex-col items-center justify-center w-full max-w-md mx-auto">
+        <h2 class="text-3xl font-bold mb-6">Create Game</h2>
+        <div class="w-full bg-gray-800 p-6 rounded-lg shadow-lg">
+            <label for="player-name-create" class="block mb-2 text-sm font-medium text-gray-300">Your Name</label>
+            <input type="text" id="player-name-create" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-4" placeholder="Enter your name" required>
+            
+            <label for="num-players" class="block mb-2 text-sm font-medium text-gray-300">Number of Players</label>
+            <select id="num-players" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-6">
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+            </select>
+            <button id="start-game-creation-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">Generate Room Code</button>
+             <button id="back-to-landing-create" class="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Back</button>
+        </div>
+    </div>
+
+    <!-- Join Game Screen -->
+    <div id="join-game-screen" class="screen flex-col items-center justify-center w-full max-w-md mx-auto">
+        <h2 class="text-3xl font-bold mb-6">Join Game</h2>
+        <div class="w-full bg-gray-800 p-6 rounded-lg shadow-lg">
+            <label for="player-name-join" class="block mb-2 text-sm font-medium text-gray-300">Your Name</label>
+            <input type="text" id="player-name-join" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-4" placeholder="Enter your name" required>
+            
+            <label for="room-code-join" class="block mb-2 text-sm font-medium text-gray-300">Room Code</label>
+            <input type="text" id="room-code-join" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 mb-6" placeholder="Enter room code" required>
+            <button id="join-room-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">Join Room</button>
+            <button id="back-to-landing-join" class="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Back</button>
+        </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen flex-col items-center justify-center w-full max-w-2xl mx-auto">
+        <h2 class="text-3xl font-bold mb-4">Game Lobby</h2>
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg w-full">
+            <div class="flex justify-between items-center mb-4">
+                 <h3 class="text-xl font-semibold">Room Code:</h3>
+                <div class="flex items-center">
+                    <span id="room-code-display" class="text-2xl font-mono bg-gray-700 px-4 py-2 rounded-lg text-yellow-300"></span>
+                    <button id="copy-code-btn" class="ml-4 bg-gray-600 hover:bg-gray-500 p-2 rounded-lg" title="Copy to Clipboard">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <p class="mb-4 text-gray-400">Waiting for players to join... (<span id="player-count">1</span>/<span id="max-players"></span>)</p>
+            <div id="player-list" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <!-- Player names will be injected here -->
+            </div>
+            <button id="start-game-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>Start Game</button>
+            <div class="flex gap-4 mt-4">
+                <button id="exit-room-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-black font-bold py-2 px-4 rounded-lg transition duration-300">Exit Room</button>
+                <button id="delete-room-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 hidden">Delete Room</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen flex-col md:flex-row items-start justify-center w-full max-w-7xl mx-auto gap-8">
+        <div id="scoreboard" class="w-full md:w-1/4 bg-gray-800 p-4 rounded-lg shadow-lg">
+            <h3 class="text-2xl font-bold mb-4 text-center">Scoreboard</h3>
+            <div id="score-list" class="space-y-2"></div>
+        </div>
+        <div class="w-full md:w-3/4">
+            <div class="w-full text-center mb-4 p-4 bg-gray-800 rounded-lg shadow-lg">
+                <div class="flex items-center justify-center gap-4">
+                     <p class="text-xl">Your Role: <span id="player-role" class="font-bold text-2xl text-yellow-300 hidden-role">(Hidden)</span></p>
+                     <button id="toggle-role-btn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-lg text-sm">View</button>
+                </div>
+                <p id="turn-info" class="text-lg mt-2"></p>
+            </div>
+            <div id="players-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                <!-- Player cards will be injected here -->
+            </div>
+        </div>
+        <div id="game-over-screen" class="hidden absolute inset-0 bg-black bg-opacity-80 flex-col items-center justify-center text-center p-8">
+            <h2 class="text-5xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500">Game Over!</h2>
+            <div id="final-roles" class="text-lg space-y-2 mb-6"></div>
+            <div id="final-scoreboard" class="w-full max-w-md bg-gray-800 p-4 rounded-lg">
+                 <h3 class="text-2xl font-bold mb-4 text-center">Final Scores</h3>
+                 <div id="final-score-list" class="space-y-2"></div>
+            </div>
+            <div class="flex gap-4 mt-8">
+                <button id="play-again-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300">Play Again</button>
+                <button id="exit-game-over-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300">Exit to Lobby</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Custom Alert Modal -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <p id="alert-message" class="text-white text-lg mb-4"></p>
+            <button id="alert-ok-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">OK</button>
+        </div>
+    </div>
+
+    <footer class="custom-footer fixed bottom-0 left-0 w-full text-white text-center p-4 text-sm">
+        🎮 Game by Chennuru Swarup | 🧑‍💻 Play. Enjoy. Repeat.
+    </footer>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, set, get, onValue, off, remove, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // --- Firebase Initialization ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBWY5RxsVM18DJOU3NVOjwvJTPcXNe9AKQ",
+            authDomain: "raju-rani-game-project.firebaseapp.com",
+            databaseURL: "https://raju-rani-game-project-default-rtdb.firebaseio.com",
+            projectId: "raju-rani-game-project",
+            storageBucket: "raju-rani-game-project.appspot.com",
+            messagingSenderId: "577941539423",
+            appId: "1:577941539423:web:858b1dd8c1169c448c69ea"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // --- DOM Elements ---
+        const screens = {
+            landing: document.getElementById('landing-screen'),
+            create: document.getElementById('create-game-screen'),
+            join: document.getElementById('join-game-screen'),
+            lobby: document.getElementById('lobby-screen'),
+            game: document.getElementById('game-screen'),
+        };
+
+        const createGameBtn = document.getElementById('create-game-btn');
+        const joinGameBtn = document.getElementById('join-game-btn');
+        const startGameCreationBtn = document.getElementById('start-game-creation-btn');
+        const joinRoomBtn = document.getElementById('join-room-btn');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const backToLandingCreate = document.getElementById('back-to-landing-create');
+        const backToLandingJoin = document.getElementById('back-to-landing-join');
+        const exitRoomBtn = document.getElementById('exit-room-btn');
+        const deleteRoomBtn = document.getElementById('delete-room-btn');
+        const toggleRoleBtn = document.getElementById('toggle-role-btn');
+        const currentPlayerDisplay = document.getElementById('current-player-display');
+        const scoreList = document.getElementById('score-list');
+        const finalScoreList = document.getElementById('final-score-list');
+        const exitGameOverBtn = document.getElementById('exit-game-over-btn');
+        
+        const customAlert = document.getElementById('custom-alert');
+        const alertMessage = document.getElementById('alert-message');
+        const alertOkBtn = document.getElementById('alert-ok-btn');
+
+        // --- Game State ---
+        let currentPlayer = null;
+        let currentRoomCode = null;
+        let gameListener = null;
+        let isAuthReady = false;
+        let myActualRole = '';
+        let lastLogLength = 0;
+
+        // --- Utility Functions ---
+        function switchScreen(screenName) {
+            Object.values(screens).forEach(screen => screen.classList.remove('active'));
+            screens[screenName].classList.add('active');
+        }
+        
+        function showAlert(message) {
+            alertMessage.textContent = message;
+            customAlert.classList.remove('hidden');
+            customAlert.classList.add('flex');
+        }
+
+        alertOkBtn.addEventListener('click', () => {
+             customAlert.classList.add('hidden');
+             customAlert.classList.remove('flex');
+        });
+
+        function generateRoomCode() {
+            // Generates a 6-digit numeric code
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+        
+        // --- Firebase Authentication ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentPlayer = {
+                    uid: user.uid,
+                    name: ''
+                };
+                isAuthReady = true;
+                console.log("Authenticated successfully:", user.uid);
+                createGameBtn.disabled = false;
+                joinGameBtn.disabled = false;
+                createGameBtn.textContent = 'Create Game';
+                joinGameBtn.textContent = 'Join Game';
+            } else {
+                isAuthReady = false;
+                currentPlayer = null;
+                console.log("User is not authenticated.");
+                createGameBtn.disabled = true;
+                joinGameBtn.disabled = true;
+                createGameBtn.textContent = 'Connecting...';
+                joinGameBtn.textContent = 'Connecting...';
+            }
+        });
+
+        (async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                showAlert("Could not connect to the server. Please refresh the page.");
+            }
+        })();
+
+        // --- Event Listeners ---
+        createGameBtn.addEventListener('click', () => switchScreen('create'));
+        joinGameBtn.addEventListener('click', () => switchScreen('join'));
+        backToLandingCreate.addEventListener('click', () => switchScreen('landing'));
+        backToLandingJoin.addEventListener('click', () => switchScreen('landing'));
+
+        startGameCreationBtn.addEventListener('click', async () => {
+            if (!isAuthReady || !auth.currentUser) {
+                showAlert("Authentication not complete. Please wait a moment and try again.");
+                return;
+            }
+            const playerName = document.getElementById('player-name-create').value.trim();
+            if (!playerName) {
+                showAlert("Please enter your name.");
+                return;
+            }
+            
+            currentPlayer.name = playerName;
+            currentPlayerDisplay.textContent = playerName;
+            currentPlayerDisplay.classList.remove('hidden');
+
+            const numPlayers = parseInt(document.getElementById('num-players').value);
+            currentRoomCode = generateRoomCode();
+            
+            const gameRef = ref(db, 'games/' + currentRoomCode);
+            
+            const snapshot = await get(gameRef);
+            if (snapshot.exists()) {
+                currentRoomCode = generateRoomCode();
+            }
+
+            const gameData = {
+                admin: auth.currentUser.uid,
+                maxPlayers: numPlayers,
+                players: {
+                    [auth.currentUser.uid]: { name: currentPlayer.name }
+                },
+                gameState: 'lobby',
+                createdAt: Date.now(),
+                completedPlayers: [],
+                scores: {}
+            };
+
+            await set(gameRef, gameData);
+            joinLobby(currentRoomCode);
+        });
+
+        joinRoomBtn.addEventListener('click', async () => {
+            if (!isAuthReady || !auth.currentUser) {
+                showAlert("Authentication not complete. Please wait a moment and try again.");
+                return;
+            }
+            const playerName = document.getElementById('player-name-join').value.trim();
+            const roomCode = document.getElementById('room-code-join').value.trim().toUpperCase();
+
+            if (!playerName || !roomCode) {
+                showAlert("Please enter your name and a room code.");
+                return;
+            }
+            
+            currentPlayer.name = playerName;
+            currentPlayerDisplay.textContent = playerName;
+            currentPlayerDisplay.classList.remove('hidden');
+
+            const gameRef = ref(db, 'games/' + roomCode);
+            const snapshot = await get(gameRef);
+
+            if (!snapshot.exists()) {
+                showAlert("Room not found. Please check the code.");
+                return;
+            }
+
+            const gameData = snapshot.val();
+            if (gameData.players && Object.keys(gameData.players).length >= gameData.maxPlayers) {
+                showAlert("This room is full.");
+                return;
+            }
+            
+            if (gameData.gameState !== 'lobby') {
+                showAlert("This game has already started.");
+                return;
+            }
+
+            const playerRef = ref(db, `games/${roomCode}/players/${auth.currentUser.uid}`);
+            await set(playerRef, { name: currentPlayer.name });
+            currentRoomCode = roomCode;
+            joinLobby(currentRoomCode);
+        });
+        
+        copyCodeBtn.addEventListener('click', () => {
+            const code = document.getElementById('room-code-display').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                showAlert("Room code copied to clipboard!");
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                const textArea = document.createElement("textarea");
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showAlert("Room code copied to clipboard!");
+                } catch (err) {
+                    showAlert("Failed to copy code.");
+                }
+                document.body.removeChild(textArea);
+            });
+        });
+        
+        startGameBtn.addEventListener('click', async () => {
+            if (!currentPlayer) return;
+            const gameRef = ref(db, `games/${currentRoomCode}`);
+            const snapshot = await get(gameRef);
+            const gameData = snapshot.val();
+
+            if (gameData.admin !== currentPlayer.uid) return;
+            if (Object.keys(gameData.players).length < gameData.maxPlayers) {
+                 showAlert("Waiting for more players to join.");
+                 return;
+            }
+
+            assignRolesAndStartGame(gameData);
+        });
+        
+        playAgainBtn.addEventListener('click', async () => {
+            if (!currentPlayer) return;
+            const gameRef = ref(db, `games/${currentRoomCode}`);
+            const snapshot = await get(gameRef);
+            const gameData = snapshot.val();
+            if (gameData.admin !== currentPlayer.uid) {
+                showAlert("Only the admin can start a new game.");
+                return;
+            }
+            
+            const newGameRef = ref(db, `games/${currentRoomCode}`);
+            const gameResetData = {
+                admin: gameData.admin,
+                maxPlayers: gameData.maxPlayers,
+                players: gameData.players,
+                gameState: 'lobby',
+                createdAt: gameData.createdAt,
+                completedPlayers: [],
+                scores: gameData.scores // Carry over scores
+            };
+
+            await set(newGameRef, gameResetData);
+        });
+
+        exitRoomBtn.addEventListener('click', () => {
+            if (currentRoomCode && currentPlayer) {
+                const playerRef = ref(db, `games/${currentRoomCode}/players/${currentPlayer.uid}`);
+                remove(playerRef);
+                resetGame();
+            }
+        });
+
+        exitGameOverBtn.addEventListener('click', resetGame);
+
+        deleteRoomBtn.addEventListener('click', () => {
+            if (currentRoomCode && currentPlayer) {
+                const gameRef = ref(db, `games/${currentRoomCode}`);
+                remove(gameRef);
+            }
+        });
+
+        toggleRoleBtn.addEventListener('click', () => {
+            const roleSpan = document.getElementById('player-role');
+            if (roleSpan.classList.contains('hidden-role')) {
+                roleSpan.textContent = myActualRole;
+                roleSpan.classList.remove('hidden-role');
+                toggleRoleBtn.textContent = 'Hide';
+            } else {
+                roleSpan.textContent = '(Hidden)';
+                roleSpan.classList.add('hidden-role');
+                toggleRoleBtn.textContent = 'View';
+            }
+        });
+
+        // --- Game Logic Functions ---
+        
+        function joinLobby(roomCode) {
+            switchScreen('lobby');
+            document.getElementById('room-code-display').textContent = roomCode;
+            
+            const gameRef = ref(db, 'games/' + roomCode);
+            
+            if (gameListener) {
+                off(gameListener);
+            }
+
+            gameListener = onValue(gameRef, (snapshot) => {
+                if (!snapshot.exists()) {
+                    showAlert("The game room was closed by the admin.");
+                    resetGame();
+                    return;
+                }
+                const gameData = snapshot.val();
+                
+                const log = gameData.log || [];
+                if (log.length > lastLogLength) {
+                    const lastLogEntry = log[log.length - 1];
+                    if (lastLogEntry.type === 'guess') {
+                       showAlert(lastLogEntry.message);
+                    }
+                }
+                lastLogLength = log.length;
+                
+                if (gameData.gameState === 'playing' || gameData.gameOver) {
+                    renderGameScreen(gameData);
+                } else if (gameData.gameState === 'lobby') {
+                    updateLobbyUI(gameData);
+                    switchScreen('lobby');
+                    document.getElementById('game-over-screen').classList.add('hidden');
+                }
+            });
+        }
+
+        function updateLobbyUI(gameData) {
+            const playerCount = gameData.players ? Object.keys(gameData.players).length : 0;
+            const maxPlayers = parseInt(gameData.maxPlayers, 10);
+
+            document.getElementById('player-count').textContent = playerCount;
+            document.getElementById('max-players').textContent = maxPlayers;
+            
+            const playerList = document.getElementById('player-list');
+            playerList.innerHTML = '';
+            if(gameData.players){
+                Object.values(gameData.players).forEach(player => {
+                    const playerEl = document.createElement('div');
+                    playerEl.className = 'bg-gray-700 p-3 rounded-lg text-center';
+                    playerEl.textContent = player.name;
+                    playerList.appendChild(playerEl);
+                });
+            }
+
+            if (currentPlayer && currentPlayer.uid === gameData.admin) {
+                startGameBtn.style.display = 'block';
+                deleteRoomBtn.style.display = 'block';
+                
+                if (playerCount === maxPlayers) {
+                    startGameBtn.disabled = false;
+                    startGameBtn.textContent = 'Start Game';
+                } else {
+                    startGameBtn.disabled = true;
+                    const remaining = maxPlayers - playerCount;
+                    startGameBtn.textContent = `Waiting for ${remaining} more players...`;
+                }
+            } else {
+                 startGameBtn.style.display = 'none';
+                 deleteRoomBtn.style.display = 'none';
+            }
+        }
+        
+        function getRolesForPlayers(numPlayers) {
+            const baseRoles = ["King", "Queen", "Police", "Thief"];
+            if (numPlayers === 4) return baseRoles;
+            if (numPlayers === 5) return [...baseRoles, "Minister"];
+            if (numPlayers === 6) return [...baseRoles, "Minister", "Warrior"];
+            if (numPlayers === 7) return [...baseRoles, "Minister", "Warrior", "Commander"];
+            if (numPlayers === 8) return [...baseRoles, "Minister", "Warrior", "Commander", "Smuggler"];
+            return [];
+        }
+
+        function getRoleScores(numPlayers) {
+            switch(parseInt(numPlayers, 10)) {
+                case 4: return { "King": 1000, "Queen": 800, "Police": 500, "Thief": 100 };
+                case 5: return { "King": 1000, "Queen": 800, "Minister": 600, "Police": 400, "Thief": 100 };
+                case 6: return { "King": 1000, "Queen": 800, "Minister": 700, "Police": 500, "Warrior": 300, "Thief": 100 };
+                case 7: return { "King": 1000, "Queen": 800, "Minister": 700, "Commander": 600, "Police": 500, "Warrior": 300, "Thief": 100 };
+                case 8: return { "King": 1000, "Queen": 800, "Minister": 700, "Commander": 600, "Police": 500, "Warrior": 300, "Thief": 200, "Smuggler": 100 };
+                default: return {};
+            }
+        }
+
+        function getActionForRole(role, allRolesList) {
+            const roleHierarchy = [
+                "King", "Queen", "Minister", "Commander", 
+                "Police", "Warrior", "Smuggler", "Thief"
+            ];
+            
+            const gameHierarchy = roleHierarchy.filter(r => allRolesList.includes(r));
+            const currentIndex = gameHierarchy.indexOf(role);
+
+            if (currentIndex > -1 && currentIndex < gameHierarchy.length - 1) {
+                const nextRole = gameHierarchy[currentIndex + 1];
+                return `Find the ${nextRole}`;
+            }
+            return 'Find the Thief';
+        }
+        
+        function assignRolesAndStartGame(gameData) {
+            const playerIds = Object.keys(gameData.players);
+            const roles = getRolesForPlayers(gameData.maxPlayers);
+            
+            for (let i = roles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [roles[i], roles[j]] = [roles[j], roles[i]];
+            }
+            
+            const assignedRoles = {};
+            const initialScores = gameData.scores || {};
+            playerIds.forEach((id, index) => {
+                assignedRoles[id] = roles[index];
+                if (!initialScores[id]) {
+                    initialScores[id] = 0;
+                }
+            });
+            
+            const kingId = Object.keys(assignedRoles).find(id => assignedRoles[id] === 'King');
+
+            const gameUpdates = {
+                gameState: 'playing',
+                roles: assignedRoles,
+                scores: initialScores,
+                turn: {
+                    playerId: kingId,
+                    role: 'King',
+                    action: 'Find the Queen'
+                },
+                log: [{
+                    type: 'start',
+                    message: `Game started! It's King's turn to find the Queen.`
+                }]
+            };
+            
+            const gameRef = ref(db, `games/${currentRoomCode}`);
+            update(gameRef, gameUpdates);
+        }
+
+        function renderGameScreen(gameData) {
+            switchScreen('game');
+            if (!currentPlayer || !gameData.roles) return;
+            
+            const roleSpan = document.getElementById('player-role');
+            if (myActualRole !== gameData.roles[currentPlayer.uid]) {
+                myActualRole = gameData.roles[currentPlayer.uid];
+                roleSpan.textContent = '(Hidden)';
+                roleSpan.classList.add('hidden-role');
+                toggleRoleBtn.textContent = 'View';
+            }
+
+            const turnInfo = document.getElementById('turn-info');
+            if (gameData.turn) {
+                const currentTurnPlayer = gameData.players[gameData.turn.playerId];
+                if (gameData.turn.playerId === currentPlayer.uid) {
+                    turnInfo.textContent = `It's your turn! ${gameData.turn.action}.`;
+                    turnInfo.classList.add('text-green-400');
+                    turnInfo.classList.remove('text-gray-400');
+                } else {
+                    turnInfo.textContent = `Waiting for ${currentTurnPlayer.name} (${gameData.turn.role}) to make a move...`;
+                    turnInfo.classList.remove('text-green-400');
+                    turnInfo.classList.add('text-gray-400');
+                }
+            } else {
+                turnInfo.textContent = "The game is over!";
+            }
+            
+            // Render Scoreboard
+            scoreList.innerHTML = '';
+            if (gameData.scores) {
+                const sortedScores = Object.entries(gameData.scores).sort(([,a],[,b]) => b-a);
+                for (const [playerId, score] of sortedScores) {
+                    const player = gameData.players[playerId];
+                    if (player) {
+                        const scoreEl = document.createElement('div');
+                        scoreEl.className = 'flex justify-between items-center bg-gray-700 p-2 rounded';
+                        scoreEl.innerHTML = `<span>${player.name}</span><span class="font-bold text-yellow-300">${score}</span>`;
+                        scoreList.appendChild(scoreEl);
+                    }
+                }
+            }
+
+            const playersGrid = document.getElementById('players-grid');
+            playersGrid.innerHTML = '';
+            
+            Object.entries(gameData.players).forEach(([playerId, player]) => {
+                const card = document.createElement('div');
+                card.className = 'player-card bg-gray-800 p-4 rounded-lg text-center border-2 border-gray-700 cursor-pointer flex flex-col justify-center items-center';
+                card.dataset.playerId = playerId;
+                
+                const nameEl = document.createElement('h3');
+                nameEl.className = 'text-xl font-bold';
+                nameEl.textContent = player.name;
+                card.appendChild(nameEl);
+
+                const completedText = document.createElement('span');
+                completedText.className = 'completed-text hidden text-green-400 font-bold mt-2 text-center';
+                card.appendChild(completedText);
+                
+                if (gameData.completedPlayers && gameData.completedPlayers.includes(playerId)) {
+                    card.classList.add('completed');
+                    const playerRole = gameData.roles[playerId];
+                    completedText.innerHTML = `<span class="text-yellow-300">${playerRole}</span><br>✓ Completed`;
+                    completedText.classList.remove('hidden');
+                } else if (gameData.turn && gameData.turn.playerId === currentPlayer.uid && playerId !== currentPlayer.uid) {
+                    card.addEventListener('click', () => handlePlayerGuess(playerId, gameData));
+                } else {
+                    card.style.cursor = 'not-allowed';
+                }
+                
+                if (gameData.turn && gameData.turn.playerId === playerId) {
+                    card.classList.add('active-turn');
+                }
+
+                playersGrid.appendChild(card);
+            });
+            
+             if (gameData.gameOver) {
+                const gameOverScreen = document.getElementById('game-over-screen');
+                const finalRolesDiv = document.getElementById('final-roles');
+                finalRolesDiv.innerHTML = '';
+
+                const roleHierarchy = [
+                    "King", "Queen", "Minister", "Commander", 
+                    "Police", "Warrior", "Smuggler", "Thief"
+                ];
+
+                const sortedRoles = Object.entries(gameData.roles).sort(([,a],[,b]) => {
+                    return roleHierarchy.indexOf(a) - roleHierarchy.indexOf(b);
+                });
+
+                for (const [uid, role] of sortedRoles) {
+                    const p = document.createElement('p');
+                    p.innerHTML = `<span class="font-semibold">${gameData.players[uid].name}</span> was the <span class="text-yellow-400">${role}</span>`;
+                    finalRolesDiv.appendChild(p);
+                }
+
+                // Render Final Scoreboard
+                finalScoreList.innerHTML = '';
+                 if (gameData.scores) {
+                    const sortedScores = Object.entries(gameData.scores).sort(([,a],[,b]) => b-a);
+                    for (const [playerId, score] of sortedScores) {
+                         const player = gameData.players[playerId];
+                         if (player) {
+                            const scoreEl = document.createElement('div');
+                            scoreEl.className = 'flex justify-between items-center bg-gray-700 p-2 rounded';
+                            scoreEl.innerHTML = `<span>${player.name}</span><span class="font-bold text-yellow-300">${score}</span>`;
+                            finalScoreList.appendChild(scoreEl);
+                         }
+                    }
+                }
+
+                gameOverScreen.classList.remove('hidden');
+                gameOverScreen.classList.add('flex');
+
+                if(currentPlayer && gameData.admin !== currentPlayer.uid) {
+                    playAgainBtn.style.display = 'none';
+                } else {
+                    playAgainBtn.style.display = 'block';
+                }
+            } else {
+                document.getElementById('game-over-screen').classList.add('hidden');
+            }
+        }
+        
+        async function handlePlayerGuess(guessedPlayerId, gameData) {
+            const turn = gameData.turn;
+            const roles = gameData.roles;
+            const actualRoleOfGuessedPlayer = roles[guessedPlayerId];
+            
+            let nextTurn;
+            let logMessage = '';
+            let gameOver = false;
+            let correctGuess = false;
+            let completedPlayers = gameData.completedPlayers || [];
+            let newRoles = { ...roles };
+            let newScores = { ...(gameData.scores || {}) };
+            
+            const guesserId = turn.playerId;
+            const guesserName = gameData.players[guesserId].name;
+            const guessedName = gameData.players[guessedPlayerId].name;
+
+            const roleToFind = turn.action.split(' ').pop();
+            const roleScores = getRoleScores(gameData.maxPlayers);
+            
+            if (actualRoleOfGuessedPlayer === roleToFind) {
+                correctGuess = true;
+                completedPlayers.push(guesserId);
+                
+                const pointsAwarded = roleScores[turn.role] || 0;
+                newScores[guesserId] = (newScores[guesserId] || 0) + pointsAwarded;
+
+                logMessage = `${guesserName} (${turn.role}) correctly identified ${guessedName} as the ${roleToFind}.`;
+                
+                const nextPlayerRole = roles[guessedPlayerId];
+
+                if (nextPlayerRole === 'Thief') {
+                     logMessage = `${guesserName} (${turn.role}) found the Thief! Game Over!`;
+                     gameOver = true;
+                     nextTurn = null;
+                     // Award points to the Thief when found
+                     const thiefId = Object.keys(roles).find(id => roles[id] === 'Thief');
+                     const thiefPoints = roleScores['Thief'] || 0;
+                     newScores[thiefId] = (newScores[thiefId] || 0) + thiefPoints;
+                } else {
+                    const nextAction = getActionForRole(nextPlayerRole, Object.values(roles));
+                    nextTurn = {
+                        playerId: guessedPlayerId,
+                        role: nextPlayerRole,
+                        action: nextAction
+                    };
+                }
+
+            } else {
+                // SWAP LOGIC
+                const guesserRole = roles[guesserId];
+                const guessedRole = roles[guessedPlayerId];
+
+                newRoles[guesserId] = guessedRole;
+                newRoles[guessedPlayerId] = guesserRole;
+
+                logMessage = `Incorrect guess! Roles swapped! Now ${guessedName} is the ${guesserRole}.`;
+                
+                nextTurn = { 
+                    playerId: guessedPlayerId,
+                    role: guesserRole,
+                    action: turn.action
+                };
+            }
+            
+            const newLog = [...(gameData.log || []), { type: 'guess', message: logMessage, correct: correctGuess }];
+            
+            const updates = {
+                turn: gameOver ? null : nextTurn,
+                log: newLog,
+                gameOver: gameOver,
+                completedPlayers: completedPlayers,
+                roles: newRoles,
+                scores: newScores,
+            };
+            
+            const gameRef = ref(db, `games/${currentRoomCode}`);
+            await update(gameRef, updates);
+        }
+        
+        function resetGame() {
+            switchScreen('landing');
+            currentPlayerDisplay.classList.add('hidden');
+            currentRoomCode = null;
+            if (gameListener) {
+                off(gameListener);
+                gameListener = null;
+            }
+        }
+        
+        window.addEventListener('beforeunload', () => {
+            if (currentRoomCode && currentPlayer) {
+                const playerRef = ref(db, `games/${currentRoomCode}/players/${currentPlayer.uid}`);
+                remove(playerRef);
+            }
+        });
+
+    </script>
+</body>
+</html>

@@ -25,6 +25,15 @@ Identify the Thief before they escape! Each correct guess earns points, while wr
 
 ---
 
+<p align="center">
+  <a href="https://rajurani.netlify.app" target="_blank" rel="noopener noreferrer">
+    <b>🎮 Let's Play the Game!</b>
+  </a>
+</p>
+
+
+---
+
 ## 🧩 Technologies Used
 
 | Technology               | Purpose                       |
